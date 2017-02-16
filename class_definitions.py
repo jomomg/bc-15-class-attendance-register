@@ -3,14 +3,21 @@ from sqlalchemy.orm import sessionmaker
 import database
 from datetime import datetime
 
-engine = create_engine('sqlite:///attendance_register.db')
-database.Base.metadata.create_all(engine)
+engine = create_engine("sqlite:///attendance_register.db")
 database.Base.metadata.bind = engine
 DB_session = sessionmaker(bind=engine)
 session = DB_session()
 
 
 class Class:
+    """Encapsulates methods used to interface with the class table
+
+       Attributes:
+           class_id (int): the numerical id of a given class
+           class_name (str): the name of a given class
+           start_time (tuple): the start time of a given class
+           end_time (tuple): the end time of a given class
+    """
 
     def __init__(self):
         self.class_id = None
@@ -18,14 +25,26 @@ class Class:
         self.start_time = None
         self.end_time = None
 
-    def add(self, class_id, class_name):
-        self.class_id = class_id
+    def add(self, class_name):
+        """Add a new class to the class table
+
+           Args:
+               class_name (str): the name of a given class
+        """
+
         self.class_name = class_name
         new_class = database.ClassTable(id=self.class_id, name=self.class_name)
         session.add(new_class)
         session.commit()
+        print("Successfully added '{}'".format(self.class_name))
 
     def remove(self, class_id):
+        """Removes a class from the class table
+
+           Args:
+               class_id (int): the id of a given class
+        """
+
         self.class_id = class_id
         class_to_remove = session.query(database.ClassTable).get(self.class_id)
         if class_to_remove is None:
@@ -33,8 +52,15 @@ class Class:
         else:
             session.delete(class_to_remove)
             session.commit()
+            print("Successfully removed '{}'".format(class_to_remove.name))
 
     def log_start(self, class_id):
+        """Logs the start time of a specified class id
+
+           Args:
+               class_id (int): the id of a given class
+        """
+
         self.class_id = class_id
         self.start_time = datetime.now()
         class_to_log = session.query(database.ClassTable).get(self.class_id)
@@ -43,8 +69,15 @@ class Class:
         else:
             class_to_log.start = self.start_time
             session.commit()
+            print("Started the log for the {} class".format(class_to_log.name))
 
     def log_end(self, class_id):
+        """Logs the end time of a specified class id that has already been started
+
+           Args:
+               class_id (int): the id of a given class
+        """
+
         self.class_id = class_id
         self.end_time = datetime.now()
         class_to_log = session.query(database.ClassTable).get(self.class_id)
@@ -53,16 +86,61 @@ class Class:
         else:
             class_to_log.end = self.end_time
             session.commit()
+            check_out_from_student_table = session.query(database.Student).\
+                filter(database.Student.class_id == self.class_id).all()
 
+            check_out_from_student_table.class_id = None
+            session.add(check_out_from_student_table)
+            session.commit()
+            print("Ended the log for the '{}' class".format(class_to_log.name))
+
+    @property
     def view_all(self):
+
+        """View all the classes in the class table
+
+           Returns:
+               None: if no classes are found
+               all_classes: all the classes found
+        """
+
         all_classes = session.query(database.ClassTable).all()
         if all_classes is None:
-            print("There are no classes in the database")
+            return None
         else:
             return all_classes
 
+    def view_students(self, class_id):
+
+        """View all students with a given class id
+
+           Args:
+               class_id (int): the id of a given class
+
+            Returns:
+                None: if no students found
+                students_to_view: all the students found
+        """
+
+        self.class_id = class_id
+        students_to_view = session.query(database.Student).filter(database.Student.class_id == self.class_id).all()
+        if students_to_view is None:
+            return None
+        else:
+            return students_to_view
+
 
 class Register:
+    """Encapsulates the methods and attributes and methods used to interface with the register table
+
+       Attributes:
+           entry_id (int): unique id for each register entry in the register table
+           class_id (int): id of the class in the register entry
+           student_id (int): the id of the student in the register entry
+           current_date (tuple): the date the register entry was made
+           checked_in (boolean): is a student checked in or not
+           reason (str): if the student is checked out of a class, the supplied reason
+    """
     def __init__(self):
         self.entry_id = None
         self.class_id = None
@@ -72,6 +150,14 @@ class Register:
         self.reason = None
 
     def update(self, class_id, student_id):
+
+        """Update the register table with a new student id and class id
+
+           Args:
+               class_id (int): the id of the class to be checked in to the register table
+               student_id (int): the id of the student to be checked in to the register table
+        """
+
         self.class_id = class_id
         self.student_id = student_id
         new_entry = database.Register(class_id=self.class_id,
@@ -81,7 +167,14 @@ class Register:
         session.add(new_entry)
         session.commit()
 
-    def remove(self, entry_id):  # remove entries from the register
+    def remove(self, entry_id):
+
+        """Remove an entry from the register table
+
+           Args:
+               entry_id (int): the id of the entry to be removed from the register table
+        """
+
         self.entry_id = entry_id
         entry_to_remove = session.query(database.Register).get(entry_id)
         if entry_to_remove is None:
@@ -91,7 +184,10 @@ class Register:
             session.commit()
             print("Successfully removed entry no. {}".format(entry_to_remove.entry_id))
 
-    def view_entries(self):   # view by class or student
+    @property
+    def view_entries(self):
+        """View all entries in the register table"""
+
         all_entries = session.query(database.Register).all()
         if all_entries is None:
             print("There are no entries in the register")
@@ -100,6 +196,14 @@ class Register:
 
 
 class Student:
+    """Encapsulates the methods and attributes used to interface with the student table
+
+       Attributes:
+           student_id (int): id of the student
+           first_name (str): first name of the student
+           last_name (str): last name of the student
+           other_name (str): any other name the student might have
+    """
     def __init__(self):
         self.student_id = None
         self.first_name = None
@@ -107,14 +211,22 @@ class Student:
         self.other_name = None
         self.class_id = None
 
-    def add(self, student_id, first_name, last_name, other_name):
-        self.student_id = student_id
+    def add(self, first_name, last_name, other_name):
+
+        """Add a new student to the student table
+
+           Args:
+                first_name (str): first name of the student
+                last_name (str): last name of the student
+                other_name (str): any other name the student might have
+
+        """
+
         self.first_name = first_name
         self.last_name = last_name
         self.other_name = other_name
 
-        new_student = database.Student(id=self.student_id,
-                                       first_name=self.first_name,
+        new_student = database.Student(first_name=self.first_name,
                                        last_name=self.last_name,
                                        other_name=self.other_name)
         if new_student is None:
@@ -127,6 +239,13 @@ class Student:
                                                        new_student.last_name))
 
     def remove(self, student_id):
+
+        """Remove a student from the register table
+
+           Args:
+               student_id (int): id of student to be removed
+        """
+
         self.student_id = student_id
         student_to_remove = session.query(database.Student).get(student_id)
         if student_to_remove is None:
@@ -139,29 +258,63 @@ class Student:
                                                          student_to_remove.last_name))
 
     def check_in(self, student_id, class_id):
-        # todo: make sure that a student cannot check in to more than one class at a time
+
+        """Check in a given student to a given class by updating the register table
+
+           Args:
+               student_id (int): id of the student
+               class_id (int): id of the class
+        """
+
         self.student_id = student_id
         self.class_id = class_id
+
         student_to_check = session.query(database.Student).get(self.student_id)
         class_to_check = session.query(database.ClassTable).get(self.class_id)
-        if student_to_check or class_to_check is None:
+        if student_to_check is None or class_to_check is None:
             print("You entered a class id or student id that does not exist")
+        elif student_to_check.class_id is not None:
+            print("you cannot check in into this class")
         else:
+            student_to_check.class_id = self.class_id
             Register().update(self.class_id, self.student_id)
+            print("Checked in '{} {}' in class '{}'".format(student_to_check.first_name,
+                                                            student_to_check.last_name,
+                                                            class_to_check.name))
 
     def check_out(self, student_id, class_id, reason):
-        # todo: make sure that a student can only check out only if he/she has checked in
+
+        """Check out a given student from a given class and supply a reason
+
+           Args:
+               student_id (int): id of the student
+               class_id (int): id of the class
+               reason (str): reason for checking out
+        """
+
         self.student_id = student_id
         self.class_id = class_id
-        student_to_check_out = session.query(database.Register).\
+
+        student_to_check_out = session.query(database.Register). \
             filter(database.Register.student_id == student_id,
-                   database.Register.class_id == self.class_id)
-        if student_to_check_out is None:
-            print("The specified student was not found")
+                   database.Register.class_id == self.class_id).all()[-1]
+        class_to_check_out = session.query(database.ClassTable).get(self.class_id)
+
+        if student_to_check_out is None or class_to_check_out is None:
+            print("The specified student or class was not found")
+        elif not student_to_check_out.checked_in:
+            print("The student specified is not checked in")
         else:
             student_to_check_out.checked_in = False
             student_to_check_out.reason = reason
+            print("You have checked out '{}' from the '{}' class".format(student_to_check_out.student_id,
+                                                                         class_to_check_out.name))
+            session.commit()
 
+    @property
     def view_all(self):
+
+        """Return all students in the student table"""
+
         all_students = session.query(database.Student).all()
         return all_students
