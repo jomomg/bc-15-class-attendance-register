@@ -88,10 +88,10 @@ class Class:
             session.commit()
             check_out_from_student_table = session.query(database.Student).\
                 filter(database.Student.class_id == self.class_id).all()
-
-            check_out_from_student_table.class_id = None
-            session.add(check_out_from_student_table)
-            session.commit()
+            for item in check_out_from_student_table:
+                item.class_id = None
+                session.add(item)
+                session.commit()
             print("Ended the log for the '{}' class".format(class_to_log.name))
 
     @property
