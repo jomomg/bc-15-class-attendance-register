@@ -1,16 +1,24 @@
 """Class Attendance Register
 
+       _   _   _                 _                        ____            _     _
+      / \ | |_| |_ ___ _ __   __| | __ _ _ __   ___ ___  |  _ \ ___  __ _(_)___| |_ ___ _ __
+     / _ \| __| __/ _ \ '_ \ / _` |/ _` | '_ \ / __/ _ \ | |_) / _ \/ _` | / __| __/ _ \ '__|
+    / ___ \ |_| ||  __/ | | | (_| | (_| | | | | (_|  __/ |  _ <  __/ (_| | \__ \ ||  __/ |
+   /_/   \_\__|\__\___|_| |_|\__,_|\__,_|_| |_|\___\___| |_| \_\___|\__, |_|___/\__\___|_|
+                                                                    |___/
+
 Usage:
-    register.py check in <student_id> <class_id>
-    register.py check out <student_id> <class_id> <reason>
-    register.py log start <class_id>
-    register.py log end <class_id>
     register.py student add
     register.py student remove <student_id>
     register.py student list
     register.py class add
     register.py class remove <class_id>
     register.py class list
+    register.py class_students <class_id>
+    register.py check in <student_id> <class_id>
+    register.py check out <student_id> <class_id> <reason>
+    register.py log start <class_id>
+    register.py log end <class_id>
     register.py view register
     register.py remove entry <entry_id>
 
@@ -20,6 +28,7 @@ Options:
 """
 
 from class_definitions import Class, Register, Student
+from terminaltables import DoubleTable
 from docopt import docopt
 
 
@@ -38,57 +47,80 @@ if args['log'] and args['end']:
     Class().log_end(args['<class_id>'])
 
 if args['student'] and args['add']:
-    student_id = input("Enter the student id: ")
+    print()
     first_name = input("Enter the first name: ")
     last_name = input("Enter the second name: ")
     other_name = input("Enter other name: ")
 
-    new_student = Student()
-    new_student.add(student_id, first_name, last_name, other_name)
+    Student().add(first_name, last_name, other_name)
 
 if args['student'] and args['remove']:
     Student().remove(args['<student_id>'])
 
 if args['student'] and args['list']:
-    student_list = Student().view_all()
+    student_list = Student().view_all
+    student_table_data = [
+        ["Student ID", "First Name", "Other Name", "Last Name"]
+    ]
     for student in student_list:
-        print("ID: {} Student Name: {} {} {}".format(student.id,
-                                                     student.first_name,
-                                                     student.other_name,
-                                                     student.last_name))
+        student_table_data.append([student.id, student.first_name, student.other_name, student.last_name])
+
+    student_table = DoubleTable(student_table_data, "Students")
+    print()
+    print(student_table.table)
 
 if args['class'] and args['add']:
-    class_id = input("Give the class a unique numerical ID: ")
     class_name = input("Give the class a name: ")
-    Class().add(class_id=class_id, class_name=class_name)
+    Class().add(class_name=class_name)
 
 if args['class'] and args['remove']:
     Class().remove(args['<class_id>'])
 
 if args['class'] and args['list']:
-    class_list = Class().view_all()
-    for elem in class_list:
-        print("ID: {} Class name: {}".format(elem.id, elem.name))
+    class_list = Class().view_all
+    if class_list is None:
+        print("No classes were found")
+    else:
+        class_table_data = [
+            ["Class ID", "Class Name"]
+        ]
+        for elem in class_list:
+            class_table_data.append([elem.id, elem.name])
+
+        class_table = DoubleTable(class_table_data, "Classes")
+        print()
+        print(class_table.table)
 
 if args['view'] and args['register']:
-    entries_list = Register().view_entries()
+    entries_list = Register().view_entries
+    entries_table_data = [
+        ["Entry No.", "Class ID", "Student ID", "Date", "Checked in", "Reason"],
+    ]
     for entry in entries_list:
-        print("entry_no: {} "
-              "class_id: {}, "
-              "student_id: {}, "
-              "date: {}, "
-              "checked_in: {}, "
-              "reason: {}".format(entry.entry_id,
-                                  entry.class_id,
-                                  entry.student_id,
-                                  entry.current_date,
-                                  entry.checked_in,
-                                  entry.reason))
+        entries_table_data.append([entry.entry_id,
+                                   entry.class_id,
+                                   entry.student_id,
+                                   entry.current_date,
+                                   entry.checked_in,
+                                   entry.reason])
+
+    entries_table = DoubleTable(entries_table_data, "Register Entries")
+    print()
+    print(entries_table.table)
 
 if args['remove'] and args['entry']:
     Register().remove(args['<entry_id>'])
 
-
-
-
-
+if args['class_students']:
+    class_students = Class().view_students(args['<class_id>'])
+    if class_students is None:
+        print("No students were found in the class")
+    else:
+        class_students_table_data = [
+            ["Student ID:", "First Name", "Other Name", "Last Name"]
+        ]
+        for student in class_students:
+            class_students_table_data.append([student.id, student.first_name, student.other_name, student.last_name])
+        class_students_table = DoubleTable(class_students_table_data, "Class ID: {}".format(args['<class_id>']))
+        print()
+        print(class_students_table.table)
