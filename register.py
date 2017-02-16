@@ -82,10 +82,10 @@ if args['class'] and args['list']:
         print("No classes were found")
     else:
         class_table_data = [
-            ["Class ID", "Class Name"]
+            ["Class ID", "Class Name","Start Time", "End time"]
         ]
         for elem in class_list:
-            class_table_data.append([elem.id, elem.name])
+            class_table_data.append([elem.id, elem.name, elem.start, elem.end])
 
         class_table = DoubleTable(class_table_data, "Classes")
         print()
