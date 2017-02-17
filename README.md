@@ -14,3 +14,6 @@ The App provides the following functionality:
 * Check out a student using from a class and provide a reason using `check out <student_id> <class_id> <reason>`
 * Log the start and end of a class using `log start <class_id>` and `log end <class_id>`
 * View register using `view register`
+
+# How to Run the App
+Open terminal and run `python register.py`
