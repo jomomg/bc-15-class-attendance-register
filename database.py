@@ -35,6 +35,6 @@ class Register(Base):
     reason = Column(Text)
 
 
-if __name__ == "__main__":
+def create_db():
     engine = create_engine("sqlite:///attendance_register.db")
     Base.metadata.create_all(engine)
