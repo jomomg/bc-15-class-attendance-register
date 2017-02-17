@@ -90,12 +90,6 @@ class Class:
         else:
             class_to_log.end = cls.end_time
             session.commit()
-            check_out_from_student_table = session.query(database.Student).\
-                filter(database.Student.class_id == cls.class_id).all()
-
-            check_out_from_student_table.class_id = None
-            session.add(check_out_from_student_table)
-            session.commit()
             print("Ended the log for the '{}' class".format(class_to_log.name))
 
     @property
